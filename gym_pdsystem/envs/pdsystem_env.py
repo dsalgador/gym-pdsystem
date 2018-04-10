@@ -142,7 +142,7 @@ class PDSystemEnv(gym.Env):
 
             if tank_visited != self.n:
             	#assert 1 == 0
-            	self.state[tank_visited] = np.minimum(self.state[tank_visited] - u[i][tank_visited], self.tank_max_loads[tank_visited])
+            	self.state[tank_visited] = np.minimum(self.state[tank_visited] + u[i][tank_visited], self.tank_max_loads[tank_visited])
             	#assert 1 == 0
  
         # Tanks lower its load due to consumption rates
@@ -150,7 +150,7 @@ class PDSystemEnv(gym.Env):
                 
         costs = self.reward()
 
-        return self._get_obs(), -costs, False, {} # WITH THE MINUS?
+        return self._get_obs(), costs, False, {} # WITH THE MINUS?
 
     def reset(self):
        
@@ -159,7 +159,8 @@ class PDSystemEnv(gym.Env):
         for i, tank_levels in enumerate(self.tank_levels):
                 a = tank_levels[0]
                 b = tank_levels[-1]
-                current_load = 0.75 * (a+b)/2.0# np.random.randint(a+1,b, size =(1,)) GIVES A STRANGE ERROR
+                #current_load = 0.75 * (a+b)/2.0# np.random.randint(a+1,b, size =(1,)) GIVES A STRANGE ERROR
+                current_load = np.random.randint(a+1,b)
                 self.tank_current_loads[i] = current_load * 1.0
                 
         self.state = self.tank_current_loads   

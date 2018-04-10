@@ -1,7 +1,7 @@
 COEFF = 0.0075 * 580/1000 * 11.86
 
 C_TRANSPORT = 0.0 # 0 implies no transport contribution
-C_LEVELS = 1.
+C_LEVELS = 10**(-5)
 
 global p0_GLOBAL
 global P1_GLOBAL

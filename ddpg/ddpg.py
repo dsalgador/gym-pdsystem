@@ -77,10 +77,13 @@ class ActorNetwork(object):
 
     def create_actor_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        net = tflearn.fully_connected(inputs, 400)
+        net = tflearn.fully_connected(inputs, 300)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
-        net = tflearn.fully_connected(net, 300)
+        net = tflearn.fully_connected(net, 150)
+        net = tflearn.layers.normalization.batch_normalization(net)
+        net = tflearn.activations.relu(net)
+        net = tflearn.fully_connected(net, 50)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
@@ -164,9 +167,16 @@ class CriticNetwork(object):
     def create_critic_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
-        net = tflearn.fully_connected(inputs, 400)
+        net = tflearn.fully_connected(inputs, 200)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
+        net = tflearn.fully_connected(inputs, 100)
+        net = tflearn.layers.normalization.batch_normalization(net)
+        net = tflearn.activations.relu(net)
+        net = tflearn.fully_connected(inputs, 50)
+        net = tflearn.layers.normalization.batch_normalization(net)
+        net = tflearn.activations.relu(net)
+
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
@@ -283,10 +293,15 @@ def train(sess, env, args, actor, critic, actor_noise):
 
             if args['render_env']:
                 env.render()
+             ##OUTPUT DATA TO FILE
+            if i % 100 == 0:
+                with open('test-sim3.txt','ab') as f:
+                     np.savetxt(f, [s], fmt='%d', delimiter=',')    
 
+           
             # Added exploration noise
             #a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
-            a = actor.predict(np.reshape(s, (1, actor.s_dim)))  + (1. / (1. + i)) # actor_noise()
+            a = actor.predict(np.reshape(s, (1, actor.s_dim)))  +  actor_noise() #(1. / (1. + i)) * np.random.randint(1,10**3) # actor_noise()
 
             s2, r, terminal, info = env.step(a[0])
 
@@ -328,6 +343,9 @@ def train(sess, env, args, actor, critic, actor_noise):
             s = s2
             ep_reward += r
 
+            
+
+
             if(j == (int(args['max_episode_len'])-1) ):
                 terminal = True
 
@@ -342,7 +360,7 @@ def train(sess, env, args, actor, critic, actor_noise):
                 writer.add_summary(summary_str, i)
                 writer.flush()
 
-                print('| Reward: {:d} | Episode: {:d} | Qmax: {:.4f}'.format(int(ep_reward), \
+                print('| Reward: {:.4f} | Episode: {:d} | Qmax: {:.4f}'.format(ep_reward, \
                         i, (ep_ave_max_q / float(j))))
                 break
 
@@ -398,7 +416,7 @@ if __name__ == '__main__':
     # run parameters
     parser.add_argument('--env', help='choose the gym env- tested on {Pendulum-v0}', default='Pendulum-v0')
     parser.add_argument('--random-seed', help='random seed for repeatability', default=1234)
-    parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=300)
+    parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=100000)
     parser.add_argument('--max-episode-len', help='max length of 1 episode', default=30)
     parser.add_argument('--render-env', help='render the gym env', action='store_true')
     parser.add_argument('--use-gym-monitor', help='record gym results', action='store_true')
