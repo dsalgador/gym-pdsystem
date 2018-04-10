@@ -7,6 +7,8 @@ from os import path
 #import constants as ct
 #import envs.constants as ct
 import gym_pdsystem.utils.utilsq as ut
+import gym_pdsystem.utils.constants as ct
+import gym_pdsystem.utils.functions as fnc
 
 
 class PDSystemEnv(gym.Env):
@@ -86,10 +88,10 @@ class PDSystemEnv(gym.Env):
     
     def reward(self):
         
-        def R_transport(self, coeff, w, u):
+        def R_transport(coeff, w, u):
             return( coeff * np.sum(w*u) )
     
-        def R_levels(self, p0 = p0_GLOBAL, M = M_GLOBAL, P1 = P1_GLOBAL,  P2 = P2_GLOBAL): #STILL TO DECIDE THE DEFAULT VALUES 
+        def R_levels(p0 = ct.p0_GLOBAL, M = ct.M_GLOBAL, P1 = ct.P1_GLOBAL,  P2 = ct.P2_GLOBAL): #STILL TO DECIDE THE DEFAULT VALUES 
 
             R = 0
 
@@ -110,7 +112,7 @@ class PDSystemEnv(gym.Env):
 
             return(R)  
 
-        R_total = C_LEVELS * R_levels() #- C_TRANSPORT * self.R_transport(COEFF, w_t, u_t) 
+        R_total = ct.C_LEVELS * R_levels() #- ct.C_TRANSPORT * self.R_transport(COEFF, w_t, u_t) 
         #+ trucks_not_deliverying * NOT_DELIVERYING_PENALTY
         
         return R_total
@@ -122,10 +124,10 @@ class PDSystemEnv(gym.Env):
         #th, thdot = self.state # th := theta
 
         #dt = self.dt
-        u.reshape(self.k, self.n+1)
+        u = u.reshape(self.k, self.n+1)
         self.last_state = self.state.copy()
 
-        u = np.clip(u, self.a_low, self.a_high_clip) #[0]
+        u = np.clip(u, self.a_low, self.a_high_clip.reshape(self.k, self.n+1)) #[0]
         self.last_u = u.reshape(u.shape[0] * u.shape[1],) # for rendering
         
         # Go to next state
@@ -133,13 +135,16 @@ class PDSystemEnv(gym.Env):
         #newth = th + newthdot*dt
         #newthdot = np.clip(newthdot, -self.max_speed, self.max_speed) #pylint: disable=E1111
         visited_ids = np.argmax(u , axis = 1)
-        
+        print(visited_ids)
+
         for i in range(self.k):
             tank_visited = visited_ids[i]
-            if tank_visited != self.n:
-                self.state[tank_visited] = np.min(self.state[tank_visited] - u[i][tank_visited] 
-                                                  , self.tank_max_loads[tank_visited])
 
+            if tank_visited != self.n:
+            	#assert 1 == 0
+            	self.state[tank_visited] = np.minimum(self.state[tank_visited] - u[i][tank_visited], self.tank_max_loads[tank_visited])
+            	#assert 1 == 0
+ 
         # Tanks lower its load due to consumption rates
         self.state = np.maximum(0, self.state - self.tank_consumption_rates)
                 
@@ -151,11 +156,11 @@ class PDSystemEnv(gym.Env):
        
         #self.truck_current_positions =  np.array([self.n] * k)
 
-        for tank_levels in zip(self.tank_levels):
+        for i, tank_levels in enumerate(self.tank_levels):
                 a = tank_levels[0]
                 b = tank_levels[-1]
-                current_load = np.random.randint(a+1,b)*1.0
-                self.tank_current_loads[i] = current_load 
+                current_load = 0.75 * (a+b)/2.0# np.random.randint(a+1,b, size =(1,)) GIVES A STRANGE ERROR
+                self.tank_current_loads[i] = current_load * 1.0
                 
         self.state = self.tank_current_loads   
         self.last_u = None

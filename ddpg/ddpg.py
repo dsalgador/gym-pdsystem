@@ -351,9 +351,9 @@ def main(args):
         tf.set_random_seed(int(args['random_seed']))
         env.seed(int(args['random_seed']))
 
-        state_dim = env.observation_space.shape[0]
+        state_dim = env.observation_space.shape[0] * env.observation_space.shape[1]
         action_dim = env.action_space.shape[0] *  env.action_space.shape[1]
-        action_bound = env.action_space.high
+        action_bound = env.action_space.high.reshape(env.action_space.high.shape[0] * env.action_space.high.shape[1] )
         # Ensure action bound is symmetric
         #assert (env.action_space.high == -env.action_space.low)
 
