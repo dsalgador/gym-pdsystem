@@ -135,7 +135,7 @@ class PDSystemEnv(gym.Env):
         #newth = th + newthdot*dt
         #newthdot = np.clip(newthdot, -self.max_speed, self.max_speed) #pylint: disable=E1111
         visited_ids = np.argmax(u , axis = 1)
-        print(visited_ids)
+        #print(visited_ids)
 
         for i in range(self.k):
             tank_visited = visited_ids[i]
@@ -171,25 +171,21 @@ class PDSystemEnv(gym.Env):
         return self.state
 
     def render(self, mode='human'):
+    	pass
 
-        if self.viewer is None:
-            import numpy as np
-            import matplotlib.pyplot as plt
-        plt.axis([0, 3, 0, 1.2])
+        # if self.viewer is None:
+        #     import numpy as np
+        #     import matplotlib.pyplot as plt
+        # plt.axis([0, 3, 0, 1.2])
 
 
-        index = np.array([i for i in range(3)]) + 0.5
-        plt.bar(index, 1, color = "Black")
-        colors = np.random.uniform(0,1,size = 3)
-        plt.bar(index, colors, color = "blue")
-            
-
-        #self.viewer.add_onetime(self.img)
-        #self.pole_transform.set_rotation(self.state[0] + np.pi/2)
-        #if self.last_u:
-         #   self.imgtrans.scale = (-self.last_u/2, np.abs(self.last_u)/2)
-        return(plt.show())
-        #return self.viewer.render(return_rgb_array = mode=='rgb_array')
+        # index = np.array([i for i in range(3)]) + 0.5
+        # plt.bar(index, 1, color = "Black")
+        # colors = np.random.uniform(0,1,size = 3)
+        # plt.bar(index, colors, color = "blue")
+        
+        
+        # return(plt.show())
 
     def render2(self, mode='human'):
 

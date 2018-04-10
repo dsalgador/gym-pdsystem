@@ -328,6 +328,10 @@ def train(sess, env, args, actor, critic, actor_noise):
             s = s2
             ep_reward += r
 
+            if(j == (int(args['max_episode_len'])-1) ):
+                terminal = True
+
+
             if terminal:
 
                 summary_str = sess.run(summary_ops, feed_dict={
@@ -368,17 +372,17 @@ def main(args):
         
         actor_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(action_dim))
 
-        if args['use_gym_monitor']:
-            if not args['render_env']:
-                env = wrappers.Monitor(
-                    env, args['monitor_dir'], video_callable=False, force=True)
-            else:
-                env = wrappers.Monitor(env, args['monitor_dir'], force=True)
+        #if args['use_gym_monitor']:
+            #if not args['render_env']:
+                #env = wrappers.Monitor(
+                   # env, args['monitor_dir'], video_callable=False, force=True)
+            #else:
+                #env = wrappers.Monitor(env, args['monitor_dir'], force=True)
 
         train(sess, env, args, actor, critic, actor_noise)
 
-        if args['use_gym_monitor']:
-            env.monitor.close()
+        #if args['use_gym_monitor']:
+            #env.monitor.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
@@ -395,7 +399,7 @@ if __name__ == '__main__':
     parser.add_argument('--env', help='choose the gym env- tested on {Pendulum-v0}', default='Pendulum-v0')
     parser.add_argument('--random-seed', help='random seed for repeatability', default=1234)
     parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=300)
-    parser.add_argument('--max-episode-len', help='max length of 1 episode', default=1000)
+    parser.add_argument('--max-episode-len', help='max length of 1 episode', default=30)
     parser.add_argument('--render-env', help='render the gym env', action='store_true')
     parser.add_argument('--use-gym-monitor', help='record gym results', action='store_true')
     parser.add_argument('--monitor-dir', help='directory for storing gym results', default='./results/gym_ddpg')
