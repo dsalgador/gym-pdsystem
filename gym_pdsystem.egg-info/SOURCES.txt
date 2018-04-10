@@ -4,3 +4,4 @@ gym_pdsystem.egg-info/SOURCES.txt
 gym_pdsystem.egg-info/dependency_links.txt
 gym_pdsystem.egg-info/requires.txt
 gym_pdsystem.egg-info/top_level.txt
+test/test-rendering.py

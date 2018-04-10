@@ -4,23 +4,9 @@ from gym.utils import seeding
 import numpy as np
 from os import path
 
-import utilsq as ut
-import functions as fnc
-
-COEFF = ct.COEFF
-
-C_TRANSPORT = ct.C_TRANSPORT
-C_LEVELS = ct.C_LEVELS
-
-p0_GLOBAL = ct.p0_GLOBAL
-
-P1_GLOBAL = ct.P1_GLOBAL
-P2_GLOBAL = ct.P2_GLOBAL
-
-M_GLOBAL = ct.M_GLOBAL
-
-NOT_DELIVERYING_PENALTY = P2_GLOBAL #to be equivalent/same importance as having 0 stock or surpassing max capacity levels
-
+#import constants as ct
+#import envs.constants as ct
+import gym_pdsystem.utils.utilsq as ut
 
 
 class PDSystemEnv(gym.Env):
@@ -36,11 +22,11 @@ class PDSystemEnv(gym.Env):
         
         # Tanks' information
         self.n = 5 
-        self.tank_ids = list(range(1,n+1))
+        self.tank_ids = list(range(1,self.n+1))
         self.tank_max_loads =  np.array([100., 200, 100., 800., 200.])
         C_max = np.array([ [ 100],[200],[100],[800],[200] ])
         #tank_current_loads = np.full(n,0)
-        self.tank_consumption_rates =  np.array([5.] * n)
+        self.tank_consumption_rates =  np.array([5.] * self.n)
 
         self.load_level_percentages = np.array([ #b , c, e
                                                 [0.02, 0.31, 0.9],
@@ -55,10 +41,10 @@ class PDSystemEnv(gym.Env):
 
         # Trucks' information
         self.k = 2
-        self.truck_ids = list(range(k))
+        self.truck_ids = list(range(self.k))
         self.truck_max_loads = np.array([70.,130.])
-        self.truck_current_loads = truck_max_loads.copy()
-        self.truck_current_positions =  np.array([self.n] * k)
+        self.truck_current_loads = self.truck_max_loads.copy()
+        self.truck_current_positions =  np.array([self.n] * self.k)
         self.truck_fractions_deliverable =  np.array([ np.array([1.]), 
                                                   np.array([1.])
                                                 ]) # we for now we only allow to deliver all t
@@ -67,7 +53,7 @@ class PDSystemEnv(gym.Env):
 
         self.graph = ut.simple_graph(self.n+1)
         self.w =  np.array([32., 159., 162., 156.,156., 0.])
-        self.weights_matrix = ut.simple_weights(n+1, w)
+        self.weights_matrix = ut.simple_weights(self.n+1, self.w)
         
                 
         ######
@@ -77,23 +63,21 @@ class PDSystemEnv(gym.Env):
         self.viewer = None
         
         ### Actions
-        self.a_low = 0
-        sel.a_high = self.truck_max_loads.copy()
-        self.a_shape = (2,6)
+        self.a_shape = (self.k,self.n+1)
+        self.a_high =np.full((self.k,self.n+1), 1) * self.truck_max_loads.reshape(self.k,1) #.reshape(self.a_shape)
+        self.a_low = np.full( self.a_shape , 0)
 
-        self.action_space = spaces.Box(low=self.a_low, high=self.a_high, shape= self.a_shape)
+        self.action_space = spaces.Box(low=self.a_low, high=self.a_high) #, shape= self.a_shape)
         
-        self.a_high_clip = np.full(a_shape, 1) * self.truck_max_loads.reshape(2,1)
+        self.a_high_clip = np.full(self.a_shape, 1) * self.truck_max_loads.reshape(self.k,1)
         
         ### States
-        self.s_low = 0
-        sel.s_high = self.tank_max_loads.copy()
-        self.s_shape = (1,5)
+        self.s_shape = (1,self.n)
+        self.s_high = self.tank_max_loads.copy().reshape(self.s_shape)
+        self.s_low = np.full( self.s_shape , 0)
 
-        self.observation_space = spaces.Box(low=self.s_low, high=self.s_high, shape = self.s_shape)
-
-        
-        
+        self.observation_space = spaces.Box(low=self.s_low, high=self.s_high) #, shape = self.s_shape)
+      
         self.seed()
 
     def seed(self, seed=None):
@@ -138,10 +122,11 @@ class PDSystemEnv(gym.Env):
         #th, thdot = self.state # th := theta
 
         #dt = self.dt
+        u.reshape(self.k, self.n+1)
         self.last_state = self.state.copy()
 
         u = np.clip(u, self.a_low, self.a_high_clip) #[0]
-        self.last_a = u # for rendering
+        self.last_u = u.reshape(u.shape[0] * u.shape[1],) # for rendering
         
         # Go to next state
         #newthdot = thdot + (-3*g/(2*l) * np.sin(th + np.pi) + 3./(m*l**2)*u) * dt
@@ -154,6 +139,10 @@ class PDSystemEnv(gym.Env):
             if tank_visited != self.n:
                 self.state[tank_visited] = np.min(self.state[tank_visited] - u[i][tank_visited] 
                                                   , self.tank_max_loads[tank_visited])
+
+        # Tanks lower its load due to consumption rates
+        self.state = np.maximum(0, self.state - self.tank_consumption_rates)
+                
         costs = self.reward()
 
         return self._get_obs(), -costs, False, {} # WITH THE MINUS?

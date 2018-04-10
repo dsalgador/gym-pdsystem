@@ -86,7 +86,7 @@ class ActorNetwork(object):
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
         w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
         out = tflearn.fully_connected(
-            net, self.a_dim, activation='tanh', weights_init=w_init)
+            net, self.a_dim, activation='sigmoid', weights_init=w_init)
         # Scale output to -action_bound to action_bound
         scaled_out = tf.multiply(out, self.action_bound)
         return inputs, out, scaled_out
@@ -286,7 +286,7 @@ def train(sess, env, args, actor, critic, actor_noise):
 
             # Added exploration noise
             #a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
-            a = actor.predict(np.reshape(s, (1, actor.s_dim))) + actor_noise()
+            a = actor.predict(np.reshape(s, (1, actor.s_dim)))  + (1. / (1. + i)) # actor_noise()
 
             s2, r, terminal, info = env.step(a[0])
 
@@ -352,10 +352,10 @@ def main(args):
         env.seed(int(args['random_seed']))
 
         state_dim = env.observation_space.shape[0]
-        action_dim = env.action_space.shape[0]
+        action_dim = env.action_space.shape[0] *  env.action_space.shape[1]
         action_bound = env.action_space.high
         # Ensure action bound is symmetric
-        assert (env.action_space.high == -env.action_space.low)
+        #assert (env.action_space.high == -env.action_space.low)
 
         actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
                              float(args['actor_lr']), float(args['tau']),
