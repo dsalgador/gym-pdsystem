@@ -37,6 +37,11 @@ class PDSystemEnv(gym.Env):
                                                 [0.07, 0.14, 0.85],
                                                 [0.08, 0.26, 0.9]
                                                    ])
+
+        for i in range(self.n):
+        	self.tank_consumption_rates[i] = self.tank_max_loads[i] * (self.load_level_percentages[i][0] + self.load_level_percentages[i][1])/2.0
+
+
         self.tank_current_loads = self.tank_max_loads.copy()             
         self.tank_levels = np.multiply(C_max,self.load_level_percentages)
 

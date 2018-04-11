@@ -295,7 +295,7 @@ def train(sess, env, args, actor, critic, actor_noise):
                 env.render()
              ##OUTPUT DATA TO FILE
             if i % 100 == 0:
-                with open('test-sim3.txt','ab') as f:
+                with open('test-sim4.txt','ab') as f:
                      np.savetxt(f, [s], fmt='%d', delimiter=',')    
 
            
