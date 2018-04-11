@@ -33,10 +33,11 @@ class ActorNetwork(object):
     between -action_bound and action_bound
     """
 
-    def __init__(self, sess, state_dim, action_dim, action_bound, learning_rate, tau, batch_size):
+    def __init__(self, sess, state_dim, action_dim, action_shape, action_bound, learning_rate, tau, batch_size):
         self.sess = sess
         self.s_dim = state_dim
         self.a_dim = action_dim
+        self.a_shape = action_shape
         self.action_bound = action_bound
         self.learning_rate = learning_rate
         self.tau = tau
@@ -77,21 +78,54 @@ class ActorNetwork(object):
 
     def create_actor_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        net = tflearn.fully_connected(inputs, 300)
+        net = tflearn.fully_connected(inputs, 400)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
-        net = tflearn.fully_connected(net, 150)
-        net = tflearn.layers.normalization.batch_normalization(net)
-        net = tflearn.activations.relu(net)
-        net = tflearn.fully_connected(net, 50)
+        #net = tflearn.fully_connected(net, 150)
+        #net = tflearn.layers.normalization.batch_normalization(net)
+        #net = tflearn.activations.relu(net)
+        net = tflearn.fully_connected(net, 300)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
+        #net = tf.multiply(net, 10.0)
+
+        # a = tf.Print(net, [net], message="This is net: ")
+        # b = tf.add(a,a)
+        # init_op = tf.initialize_all_variables()
+        # sess = tf.InteractiveSession()
+        # sess.run(init_op)
+        # b.eval()
+
+        #b.eval()
+        #tf.Print(net)
         w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
         out = tflearn.fully_connected(
-            net, self.a_dim, activation='sigmoid', weights_init=w_init)
+            net, self.a_dim, activation='softmax', weights_init=w_init)
+        #out = tflearn.activations.sigmoid(out)
+        #out = tf.multiply(out, self.action_bound)
+
+        #out2 = tflearn.fully_connected(
+            #out, self.a_dim, activation='softmax', weights_init=w_init)
+
+        #Filter
+        #print(out.shape)
+        #out = tf.reshape(out, self.a_shape )
+        #print(out)
+        #print(tf.reduce_max(out, reduction_indices=[1]))
+        #out = (out == tf.reduce_max(out, reduction_indices=[1]))
+        #print(out)
+        #print(out.shape)
+        #out = out.astype(int)
+        #tf.reduce_max(x, reduction_indices=[1])
+        #out = tf.reshape(out, (-1,self.a_dim) )
+        #print(out.shape)
+
+        #print(out)
         # Scale output to -action_bound to action_bound
+        #print()
         scaled_out = tf.multiply(out, self.action_bound)
+        #print(scaled_out)
         return inputs, out, scaled_out
 
     def train(self, inputs, a_gradient):
@@ -167,15 +201,15 @@ class CriticNetwork(object):
     def create_critic_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
-        net = tflearn.fully_connected(inputs, 200)
+        net = tflearn.fully_connected(inputs, 400)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
-        net = tflearn.fully_connected(inputs, 100)
-        net = tflearn.layers.normalization.batch_normalization(net)
-        net = tflearn.activations.relu(net)
-        net = tflearn.fully_connected(inputs, 50)
-        net = tflearn.layers.normalization.batch_normalization(net)
-        net = tflearn.activations.relu(net)
+        #net = tflearn.fully_connected(inputs, 100)
+        #net = tflearn.layers.normalization.batch_normalization(net)
+        #net = tflearn.activations.relu(net)
+        #net = tflearn.fully_connected(inputs, 50)
+        #net = tflearn.layers.normalization.batch_normalization(net)
+        #net = tflearn.activations.relu(net)
 
 
         # Add the action tensor in the 2nd hidden layer
@@ -266,7 +300,7 @@ def train(sess, env, args, actor, critic, actor_noise):
 
     # Set up summary Ops
     summary_ops, summary_vars = build_summaries()
-
+   
     sess.run(tf.global_variables_initializer())
     writer = tf.summary.FileWriter(args['summary_dir'], sess.graph)
 
@@ -295,7 +329,7 @@ def train(sess, env, args, actor, critic, actor_noise):
                 env.render()
              ##OUTPUT DATA TO FILE
             if i % 100 == 0:
-                with open('test-sim4.txt','ab') as f:
+                with open('test-sim9.txt','ab') as f:
                      np.savetxt(f, [s], fmt='%d', delimiter=',')    
 
            
@@ -354,14 +388,14 @@ def train(sess, env, args, actor, critic, actor_noise):
 
                 summary_str = sess.run(summary_ops, feed_dict={
                     summary_vars[0]: ep_reward,
-                    summary_vars[1]: ep_ave_max_q / float(j)
+                    summary_vars[1]: ep_ave_max_q / (float(j+1))
                 })
 
                 writer.add_summary(summary_str, i)
                 writer.flush()
 
-                print('| Reward: {:.4f} | Episode: {:d} | Qmax: {:.4f}'.format(ep_reward, \
-                        i, (ep_ave_max_q / float(j))))
+                print('| Reward: {:.4f} | Episode: {:d} | Episode length: {:d} | Qmax: {:.4f}'.format(ep_reward, \
+                        i, j, (ep_ave_max_q / float(j+1))))
                 break
 
 def main(args):
@@ -374,12 +408,13 @@ def main(args):
         env.seed(int(args['random_seed']))
 
         state_dim = env.observation_space.shape[0] * env.observation_space.shape[1]
-        action_dim = env.action_space.shape[0] *  env.action_space.shape[1]
+        action_shape = (env.action_space.shape[0] ,  env.action_space.shape[1])
+        action_dim = action_shape[0] * action_shape[1]
         action_bound = env.action_space.high.reshape(env.action_space.high.shape[0] * env.action_space.high.shape[1] )
         # Ensure action bound is symmetric
         #assert (env.action_space.high == -env.action_space.low)
 
-        actor = ActorNetwork(sess, state_dim, action_dim, action_bound,
+        actor = ActorNetwork(sess, state_dim, action_dim, action_shape, action_bound,
                              float(args['actor_lr']), float(args['tau']),
                              int(args['minibatch_size']))
 

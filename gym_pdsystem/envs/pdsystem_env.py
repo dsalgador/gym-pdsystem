@@ -70,8 +70,8 @@ class PDSystemEnv(gym.Env):
         self.viewer = None
         
         ### Actions
-        self.a_shape = (self.k,self.n+1)
-        self.a_high =np.full((self.k,self.n+1), 1) * self.truck_max_loads.reshape(self.k,1) #.reshape(self.a_shape)
+        self.a_shape = (self.k,self.n) # we have removed +1
+        self.a_high =np.full(self.a_shape, 1) * self.truck_max_loads.reshape(self.k,1) #.reshape(self.a_shape)
         self.a_low = np.full( self.a_shape , 0)
 
         self.action_space = spaces.Box(low=self.a_low, high=self.a_high) #, shape= self.a_shape)
@@ -129,10 +129,10 @@ class PDSystemEnv(gym.Env):
         #th, thdot = self.state # th := theta
 
         #dt = self.dt
-        u = u.reshape(self.k, self.n+1)
+        u = u.reshape(self.a_shape)
         self.last_state = self.state.copy()
 
-        u = np.clip(u, self.a_low, self.a_high_clip.reshape(self.k, self.n+1)) #[0]
+        u = np.clip(u, self.a_low, self.a_high_clip.reshape(self.a_shape)) #[0]
         self.last_u = u.reshape(u.shape[0] * u.shape[1],) # for rendering
         
         # Go to next state
@@ -147,7 +147,10 @@ class PDSystemEnv(gym.Env):
 
             if tank_visited != self.n:
             	#assert 1 == 0
-            	self.state[tank_visited] = np.minimum(self.state[tank_visited] + u[i][tank_visited], self.tank_max_loads[tank_visited])
+            	#self.state[tank_visited] = np.minimum(self.state[tank_visited] + u[i][tank_visited], self.tank_max_loads[tank_visited])
+            	self.state[tank_visited] = np.minimum(self.state[tank_visited] + self.truck_max_loads[i], self.tank_max_loads[tank_visited])
+
+
             	#assert 1 == 0
  
         # Tanks lower its load due to consumption rates
@@ -155,7 +158,13 @@ class PDSystemEnv(gym.Env):
                 
         costs = self.reward()
 
-        return self._get_obs(), costs, False, {} # WITH THE MINUS?
+        termination = False
+        #Terminate if some tank is empty
+        #if len(np.nonzero(self.state)[0]) != self.n:
+        	#print(len(np.nonzero(self.state)[0]))
+        	#termination = True
+
+        return self._get_obs(), costs, termination, {} # WITH THE MINUS?
 
     def reset(self):
        
