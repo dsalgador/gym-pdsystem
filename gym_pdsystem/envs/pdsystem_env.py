@@ -2,6 +2,7 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
+import random
 from os import path
 
 #import constants as ct
@@ -174,7 +175,7 @@ class PDSystemEnv(gym.Env):
                 a = tank_levels[0]
                 b = tank_levels[-1]
                 #current_load = 0.75 * (a+b)/2.0# np.random.randint(a+1,b, size =(1,)) GIVES A STRANGE ERROR
-                current_load = np.random.randint(a+1,b)
+                current_load = random.random() * (b - a-1) + a+1 #np.random.randint(a+1,b)
                 self.tank_current_loads[i] = current_load * 1.0
                 
         self.state = self.tank_current_loads   
