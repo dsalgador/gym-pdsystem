@@ -99,7 +99,7 @@ class ActorNetwork(object):
 
         #b.eval()
         #tf.Print(net)
-        w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003)
+        w_init = tflearn.initializations.variance_scaling(factor=2.0, mode='FAN_IN', uniform=False, seed=None, dtype=tf.float32) #(minval=-0.003, maxval=0.003) # try variance_scaling and xavier
         out = tflearn.fully_connected(
             net, self.a_dim, activation='softmax', weights_init=w_init)
         #out = tflearn.activations.sigmoid(out)
@@ -329,7 +329,7 @@ def train(sess, env, args, actor, critic, actor_noise):
                 env.render()
              ##OUTPUT DATA TO FILE
             if i % 100 == 0:
-                with open('test-sim9.txt','ab') as f:
+                with open('test-sim10.txt','ab') as f:
                      np.savetxt(f, [s], fmt='%d', delimiter=',')    
 
            
