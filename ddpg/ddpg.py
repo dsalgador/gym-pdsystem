@@ -329,7 +329,7 @@ def train(sess, env, args, actor, critic, actor_noise):
                 env.render()
              ##OUTPUT DATA TO FILE
             if i % 100 == 0:
-                with open('test-sim10.txt','ab') as f:
+                with open('test-sim11.txt','ab') as f:
                      np.savetxt(f, [s], fmt='%d', delimiter=',')    
 
            
@@ -396,6 +396,9 @@ def train(sess, env, args, actor, critic, actor_noise):
 
                 print('| Reward: {:.4f} | Episode: {:d} | Episode length: {:d} | Qmax: {:.4f}'.format(ep_reward, \
                         i, j, (ep_ave_max_q / float(j+1))))
+
+                with open('info-sim11.txt','ab') as f:
+                     np.savetxt(f, [np.array([i,ep_reward, ep_ave_max_q / float(j+1)])], fmt='%.4f', delimiter=',')    
                 break
 
 def main(args):
