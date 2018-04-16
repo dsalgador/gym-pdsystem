@@ -11,26 +11,10 @@ import gym_pdsystem.utils.constants as ct
 import gym_pdsystem.utils.functions as fnc
 
 
-class PDSystemEnv(gym.Env):
-    metadata = {
-        'render.modes' : ['human', 'rgb_array'],
-        'video.frames_per_second' : 30
-    }
 
-    def __init__(self):
-        """
-        Default problem for n = 5 and k = 2
-        """
-        
-        # Tanks' information
-        self.n = 5 
-        self.tank_ids = list(range(1,self.n+1))
-        self.tank_max_loads =  np.array([100., 200, 100., 800., 200.])
-        C_max = np.array([ [ 100],[200],[100],[800],[200] ])
-        #tank_current_loads = np.full(n,0)
-        self.tank_consumption_rates =  np.array([5.] * self.n)
 
-        self.load_level_percentages = np.array([ #b , c, e
+TANK_MAX_LOADS = np.array([100., 200, 100., 800., 200.])
+LEVEL_PERCENTAGES = np.array([ #b , c, e
                                                 [0.02, 0.31, 0.9],
                                                 [0.01, 0.03, 0.9],
                                                 [0.05, 0.16, 0.9],
@@ -38,18 +22,47 @@ class PDSystemEnv(gym.Env):
                                                 [0.08, 0.26, 0.9]
                                                    ])
 
+TRUCK_MAX_LOADS = np.array([70.,130.])
+
+GRAPH_WEIGHTS = np.array([32., 159., 162., 156.,156., 0.])
+
+class PDSystemEnv(gym.Env):
+    metadata = {
+        'render.modes' : ['human', 'rgb_array'],
+        'video.frames_per_second' : 30
+    }
+
+    def __init__(self, tank_max_loads = TANK_MAX_LOADS, 
+    					level_percentages = LEVEL_PERCENTAGES,
+    					truck_max_loads = TRUCK_MAX_LOADS,
+    					graph_weights = GRAPH_WEIGHTS):
+        """
+        Default problem for n = 5 and k = 2
+        """
+        
+        # Tanks' information
+        self.tank_max_loads = tank_max_loads 
+
+        self.n = len(self.tank_max_loads) 
+        self.tank_ids = list(range(1,self.n+1))
+        C_max = np.array([ [load] for load in self.tank_max_loads ])
+        #tank_current_loads = np.full(n,0)
+        #self.tank_consumption_rates =  np.array([5.] * self.n)
+
+        self.load_level_percentages = level_percentages
+
         for i in range(self.n):
         	self.tank_consumption_rates[i] = self.tank_max_loads[i] * (self.load_level_percentages[i][0] + self.load_level_percentages[i][1])/2.0
-
 
         self.tank_current_loads = self.tank_max_loads.copy()             
         self.tank_levels = np.multiply(C_max,self.load_level_percentages)
 
 
         # Trucks' information
-        self.k = 2
+        self.truck_max_loads = truck_max_loads
+
+        self.k = len(self.truck_max_loads)
         self.truck_ids = list(range(self.k))
-        self.truck_max_loads = np.array([70.,130.])
         self.truck_current_loads = self.truck_max_loads.copy()
         self.truck_current_positions =  np.array([self.n] * self.k)
         self.truck_fractions_deliverable =  np.array([ np.array([1.]), 
@@ -59,18 +72,16 @@ class PDSystemEnv(gym.Env):
         # World/Environment information
 
         self.graph = ut.simple_graph(self.n+1)
-        self.w =  np.array([32., 159., 162., 156.,156., 0.])
+        self.w =  graph_weights
         self.weights_matrix = ut.simple_weights(self.n+1, self.w)
         
                 
         ######
-
-
-        self.dt=.05
-        self.viewer = None
+        #self.dt=.05
+        #self.viewer = None
         
         ### Actions
-        self.a_shape = (self.k,self.n) # we have removed +1
+        self.a_shape = (self.k,self.n+1) # we have removed +1
         self.a_high =np.full(self.a_shape, 1) * self.truck_max_loads.reshape(self.k,1) #.reshape(self.a_shape)
         self.a_low = np.full( self.a_shape , 0)
 
@@ -174,7 +185,7 @@ class PDSystemEnv(gym.Env):
                 a = tank_levels[0]
                 b = tank_levels[-1]
                 #current_load = 0.75 * (a+b)/2.0# np.random.randint(a+1,b, size =(1,)) GIVES A STRANGE ERROR
-                current_load = np.random.randint(a+1,b)
+                current_load = random.random() * (b - a-1) + a+1 #np.random.randint(a+1,b)
                 self.tank_current_loads[i] = current_load * 1.0
                 
         self.state = self.tank_current_loads   
