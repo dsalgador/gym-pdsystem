@@ -12,7 +12,7 @@ import gym_pdsystem.utils.constants as ct
 import gym_pdsystem.utils.functions as fnc
 
 
-
+# Example n=5, k = 2
 
 TANK_MAX_LOADS = np.array([100., 200, 100., 800., 200.])
 LEVEL_PERCENTAGES = np.array([ #b , c, e
@@ -26,6 +26,11 @@ LEVEL_PERCENTAGES = np.array([ #b , c, e
 TRUCK_MAX_LOADS = np.array([70.,130.])
 
 GRAPH_WEIGHTS = np.array([32., 159., 162., 156.,156., 0.])
+
+# Example k = 1
+TRUCK_MAX_LOADS = np.array([70.])
+
+
 
 class PDSystemEnv(gym.Env):
     metadata = {
@@ -48,7 +53,7 @@ class PDSystemEnv(gym.Env):
         self.tank_ids = list(range(1,self.n+1))
         C_max = np.array([ [load] for load in self.tank_max_loads ])
         #tank_current_loads = np.full(n,0)
-        #self.tank_consumption_rates =  np.array([5.] * self.n)
+        self.tank_consumption_rates =  np.array([5.] * self.n)
 
         self.load_level_percentages = level_percentages
 
@@ -103,7 +108,7 @@ class PDSystemEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
     
-    def reward(self):
+    def reward(self, trucks_not_deliverying):
         
         def R_transport(coeff, w, u):
             return( coeff * np.sum(w*u) )
@@ -129,8 +134,7 @@ class PDSystemEnv(gym.Env):
 
             return(R)  
 
-        R_total = ct.C_LEVELS * R_levels() #- ct.C_TRANSPORT * self.R_transport(COEFF, w_t, u_t) 
-        #+ trucks_not_deliverying * NOT_DELIVERYING_PENALTY
+        R_total = ct.C_LEVELS * ( R_levels() + trucks_not_deliverying * ct.NOT_DELIVERYING_PENALTY ) #- ct.C_TRANSPORT * R_transport(ct.COEFF, w_t, u_t)
         
         return R_total
 
@@ -138,11 +142,7 @@ class PDSystemEnv(gym.Env):
         """
         u == ((l_11, l_12,...,l_1n, l_1n+1), (l_21, l_22, ..., l_2n, l_2n+1)) (if k = 2 trucks)
         """
-        #th, thdot = self.state # th := theta
-
-        #dt = self.dt
-        #print(self.a_shape)
-       # print(u)
+    
         u = u.reshape(self.a_shape)
         self.last_state = self.state.copy()
 
@@ -150,29 +150,25 @@ class PDSystemEnv(gym.Env):
         self.last_u = u.reshape(u.shape[0] * u.shape[1],) # for rendering
         
         # Go to next state
-        #newthdot = thdot + (-3*g/(2*l) * np.sin(th + np.pi) + 3./(m*l**2)*u) * dt
-        #newth = th + newthdot*dt
-        #newthdot = np.clip(newthdot, -self.max_speed, self.max_speed) #pylint: disable=E1111
         visited_ids = np.argmax(u , axis = 1)
-        #print(visited_ids)
+
+        trucks_not_deliverying = 0
 
         for i in range(self.k):
             tank_visited = visited_ids[i]
 
             if tank_visited != self.n:
-            	#assert 1 == 0
             	#self.state[tank_visited] = np.minimum(self.state[tank_visited] + u[i][tank_visited], self.tank_max_loads[tank_visited])
-            	self.state[tank_visited] = np.minimum(self.state[tank_visited] + self.truck_max_loads[i], self.tank_max_loads[tank_visited])
-
-
-            	#assert 1 == 0
+            	hypothetical_next_tank_state = self.state[tank_visited] + self.truck_max_loads[i]
+            	if hypothetical_next_tank_state <= self.tank_max_loads[tank_visited]:
+            			self.state[tank_visited] = hypothetical_next_tank_state
+            	else:	
+                		trucks_not_deliverying = trucks_not_deliverying + 1
  
         # Tanks lower its load due to consumption rates
         self.state = np.maximum(0, self.state - self.tank_consumption_rates)
                 
-        costs = self.reward()
-
-        #self.state = self.state / self.tank_max_loads
+        costs = self.reward(trucks_not_deliverying)
 
         termination = False
         #Terminate if some tank is empty
@@ -181,6 +177,48 @@ class PDSystemEnv(gym.Env):
         	#termination = True
 
         return self._get_obs(), costs, termination, {} # WITH THE MINUS?
+
+
+
+    def step_discrete(self,u):
+        """
+        u == (tank_1, tank_2  ) (if k = 2 trucks) tank_i \in {0,...,n-1,n}, n means stay in the depot
+        """
+    
+        #u = u.reshape(self.a_shape)
+        self.last_state = self.state.copy()
+
+        #u = np.clip(u, self.a_low, self.a_high_clip.reshape(self.a_shape)) #[0]
+        #self.last_u = u.reshape(u.shape[0] * u.shape[1],) # for rendering
+        
+        # Go to next state
+        #visited_ids = np.argmax(u , axis = 1)
+
+        trucks_not_deliverying = 0
+
+        for i in range(self.k):
+            tank_visited = u[i]
+
+            if tank_visited != self.n:
+            	#self.state[tank_visited] = np.minimum(self.state[tank_visited] + u[i][tank_visited], self.tank_max_loads[tank_visited])
+            	hypothetical_next_tank_state = self.state[tank_visited] + self.truck_max_loads[i]
+            	if hypothetical_next_tank_state <= self.tank_max_loads[tank_visited]:
+            			self.state[tank_visited] = hypothetical_next_tank_state
+            	else:	
+                		trucks_not_deliverying = trucks_not_deliverying + 1
+ 
+        # Tanks lower its load due to consumption rates
+        self.state = np.maximum(0, self.state - self.tank_consumption_rates)
+                
+        costs = self.reward(trucks_not_deliverying)
+
+        termination = False
+        #Terminate if some tank is empty
+         #if len(np.nonzero(self.state)[0]) != self.n:
+        	#print(len(np.nonzero(self.state)[0]))
+        	#termination = True
+
+        return self._get_obs(), costs, termination, {} # WITH THE MINUS?    
 
     def reset(self):
        

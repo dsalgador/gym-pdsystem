@@ -634,7 +634,7 @@ if __name__ == '__main__':
     parser.add_argument('--minibatch-size', help='size of minibatch for minibatch-SGD', default=64)
 
     # run parameters
-    parser.add_argument('--sim-id', help='simulation identifier', default=20)
+    parser.add_argument('--sim-id', help='simulation identifier', default=21)
 
 
     parser.add_argument('--env', help='choose the gym env- tested on {Pendulum-v0}', default='Pendulum-v0')
