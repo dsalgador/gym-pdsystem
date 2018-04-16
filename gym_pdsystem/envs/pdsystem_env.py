@@ -71,7 +71,7 @@ class PDSystemEnv(gym.Env):
         self.viewer = None
         
         ### Actions
-        self.a_shape = (self.k,self.n) # we have removed +1
+        self.a_shape = (self.k,self.n+1) # we have removed +1
         self.a_high =np.full(self.a_shape, 1) * self.truck_max_loads.reshape(self.k,1) #.reshape(self.a_shape)
         self.a_low = np.full( self.a_shape , 0)
 
@@ -130,6 +130,8 @@ class PDSystemEnv(gym.Env):
         #th, thdot = self.state # th := theta
 
         #dt = self.dt
+        #print(self.a_shape)
+       # print(u)
         u = u.reshape(self.a_shape)
         self.last_state = self.state.copy()
 
@@ -159,9 +161,11 @@ class PDSystemEnv(gym.Env):
                 
         costs = self.reward()
 
+        #self.state = self.state / self.tank_max_loads
+
         termination = False
         #Terminate if some tank is empty
-        #if len(np.nonzero(self.state)[0]) != self.n:
+         #if len(np.nonzero(self.state)[0]) != self.n:
         	#print(len(np.nonzero(self.state)[0]))
         	#termination = True
 
@@ -178,7 +182,7 @@ class PDSystemEnv(gym.Env):
                 current_load = random.random() * (b - a-1) + a+1 #np.random.randint(a+1,b)
                 self.tank_current_loads[i] = current_load * 1.0
                 
-        self.state = self.tank_current_loads   
+        self.state = self.tank_current_loads# / self.tank_max_loads 
         self.last_u = None
         return self._get_obs()
 
