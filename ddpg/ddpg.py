@@ -20,6 +20,9 @@ import pprint as pp
 
 from replay_buffer import ReplayBuffer
 
+from datetime import datetime
+
+
 # ===========================
 #   Actor and Critic DNNs
 # ===========================
@@ -78,13 +81,15 @@ class ActorNetwork(object):
 
     def create_actor_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
-        net = tflearn.fully_connected(inputs, 400)
+        #tank_max_loads =  np.array([100., 200, 100., 800., 200.])
+        #inputs = tf.multiply(inputs, tank_max_loads**(-1))
+        net = tflearn.fully_connected(inputs, 300)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
-        #net = tflearn.fully_connected(net, 150)
-        #net = tflearn.layers.normalization.batch_normalization(net)
-        #net = tflearn.activations.relu(net)
-        net = tflearn.fully_connected(net, 300)
+        net = tflearn.fully_connected(net, 150)
+        net = tflearn.layers.normalization.batch_normalization(net)
+        net = tflearn.activations.relu(net)
+        net = tflearn.fully_connected(net, 50)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
         # Final layer weights are init to Uniform[-3e-3, 3e-3]
@@ -99,9 +104,17 @@ class ActorNetwork(object):
 
         #b.eval()
         #tf.Print(net)
-        w_init = tflearn.initializations.variance_scaling(factor=2.0, mode='FAN_IN', uniform=False, seed=None, dtype=tf.float32) #(minval=-0.003, maxval=0.003) # try variance_scaling and xavier
-        out = tflearn.fully_connected(
-            net, self.a_dim, activation='softmax', weights_init=w_init)
+        w_init = tflearn.initializations.variance_scaling(factor=2.0, mode='FAN_IN', uniform=False, seed=1, dtype=tf.float32) #(minval=-0.003, maxval=0.003) # try variance_scaling and xavier
+        #out = tflearn.fully_connected(
+            #net, self.a_dim, activation='softmax', weights_init=w_init)
+
+        outs = []
+        #print(self.a_dim)
+        for i in range(int((self.a_dim) / (self.s_dim+1))): # - 1 if we consider also staying in the depot
+                truck = tflearn.fully_connected(net,self.s_dim+1, activation='softmax', weights_init=w_init)                          
+                outs.append(truck)
+
+        out = tf.concat(outs, axis=1)
         #out = tflearn.activations.sigmoid(out)
         #out = tf.multiply(out, self.action_bound)
 
@@ -124,8 +137,10 @@ class ActorNetwork(object):
         #print(out)
         # Scale output to -action_bound to action_bound
         #print()
-        scaled_out = tf.multiply(out, self.action_bound)
+        #scaled_out = tf.multiply(out, self.action_bound)
         #print(scaled_out)
+        scaled_out = out
+
         return inputs, out, scaled_out
 
     def train(self, inputs, a_gradient):
@@ -201,12 +216,12 @@ class CriticNetwork(object):
     def create_critic_network(self):
         inputs = tflearn.input_data(shape=[None, self.s_dim])
         action = tflearn.input_data(shape=[None, self.a_dim])
-        net = tflearn.fully_connected(inputs, 400)
+        net = tflearn.fully_connected(inputs, 200)
         net = tflearn.layers.normalization.batch_normalization(net)
         net = tflearn.activations.relu(net)
-        #net = tflearn.fully_connected(inputs, 100)
-        #net = tflearn.layers.normalization.batch_normalization(net)
-        #net = tflearn.activations.relu(net)
+        net = tflearn.fully_connected(inputs, 100)
+        net = tflearn.layers.normalization.batch_normalization(net)
+        net = tflearn.activations.relu(net)
         #net = tflearn.fully_connected(inputs, 50)
         #net = tflearn.layers.normalization.batch_normalization(net)
         #net = tflearn.activations.relu(net)
@@ -214,9 +229,8 @@ class CriticNetwork(object):
 
         # Add the action tensor in the 2nd hidden layer
         # Use two temp layers to get the corresponding weights and biases
-        t1 = tflearn.fully_connected(net, 300)
-        t2 = tflearn.fully_connected(action, 300)
-
+        t1 = tflearn.fully_connected(net, 50)
+        t2 = tflearn.fully_connected(action, 50)
         net = tflearn.activation(
             tf.matmul(net, t1.W) + tf.matmul(action, t2.W) + t2.b, activation='relu')
 
@@ -298,11 +312,21 @@ def build_summaries():
 
 def train(sess, env, args, actor, critic, actor_noise):
 
+    now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    root_logdir = "tf_logs"
+    logdir = "{}/run-{}/".format(root_logdir, now)
+
+
     # Set up summary Ops
     summary_ops, summary_vars = build_summaries()
    
     sess.run(tf.global_variables_initializer())
+    saver = tf.train.Saver()
+
     writer = tf.summary.FileWriter(args['summary_dir'], sess.graph)
+
+    logwriter = tf.summary.FileWriter(logdir, sess.graph)
+
 
     # Initialize target network weights
     actor.update_target_network()
@@ -314,7 +338,8 @@ def train(sess, env, args, actor, critic, actor_noise):
     # Needed to enable BatchNorm. 
     # This hurts the performance on Pendulum but could be useful
     # in other environments.
-    # tflearn.is_training(True)
+    #tflearn.is_training(True)
+    sim_id = int(args['sim_id'])
 
     for i in range(int(args['max_episodes'])):
 
@@ -329,8 +354,12 @@ def train(sess, env, args, actor, critic, actor_noise):
                 env.render()
              ##OUTPUT DATA TO FILE
             if i % 100 == 0:
-                with open('test-sim10.txt','ab') as f:
-                     np.savetxt(f, [s], fmt='%d', delimiter=',')    
+                file = 'sim{:d}/test-sim{:d}.txt'.format(sim_id,sim_id)
+                with open(file,'ab') as f:
+                     np.savetxt(f, [s], fmt='%d', delimiter=',')
+            if i % 10000 == 0:
+         
+                save_path = saver.save(sess, 'sim{:d}/model_sim{:d}-episode{:d}.ckpt'.format(sim_id,sim_id,i))    
 
            
             # Added exploration noise
@@ -392,47 +421,200 @@ def train(sess, env, args, actor, critic, actor_noise):
                 })
 
                 writer.add_summary(summary_str, i)
+                logwriter.add_summary(summary_str, i)
+
                 writer.flush()
 
-                print('| Reward: {:.4f} | Episode: {:d} | Episode length: {:d} | Qmax: {:.4f}'.format(ep_reward, \
+
+                #reward_summary = tf.summary.scalar('Average Reward', ep_reward)
+                #qvalue_summary = tf.summary.scalar('Average Max Q-value', ep_ave_max_q / float(j+1))
+
+                #print(i, reward_summary.eval())
+                #print(i, reward_summary)
+
+ 
+                #logwriter.add_summary(reward_summary.eval(), i)
+                #logwriter.add_summary(qvalue_summary.eval(), i)
+
+
+                print('| Reward: {:.6f} | Episode: {:d} | Episode length: {:d} | Qmax: {:.4f}'.format(ep_reward, \
                         i, j, (ep_ave_max_q / float(j+1))))
+
+                with open('sim{:d}/info-sim{:d}.txt'.format(sim_id,sim_id),'ab') as f:
+                     np.savetxt(f, [np.array([i,ep_reward, ep_ave_max_q / float(j+1),j])], fmt='%.6f', delimiter=',')    
                 break
+
+
+# ===========================
+#   Agent Testing
+# ===========================
+
+def test(sess, env, args, actor, critic):
+
+
+
+    # Set up summary Ops
+    summary_ops, summary_vars = build_summaries()
+
+    sim_id = int(args['sim_id'])
+
+    sess.run(tf.global_variables_initializer())
+    writer = tf.summary.FileWriter(args['summary_dir'], sess.graph)
+    #saver = tf.train.import_meta_graph('sim{:d}/model_sim{:d}.ckpt.meta'.format(sim_id,sim_id))
+
+    #saver.restore(sess, 'sim{:d}/model_sim{:d}.ckpt'.format(sim_id,sim_id))
+
+    #actor.eval()
+    #critic.eval()
+
+    # Initialize target network weights
+    #actor.update_target_network()
+    #critic.update_target_network()
+
+    # Initialize replay memory
+    #replay_buffer = ReplayBuffer(int(args['buffer_size']), int(args['random_seed']))
+
+    # Needed to enable BatchNorm. 
+    # This hurts the performance on Pendulum but could be useful
+    # in other environments.
+    # tflearn.is_training(True)
+
+
+    for i in range(int(args['max_test_episodes'])):
+
+        s = env.reset()
+
+        ep_reward = 0
+        ep_ave_max_q = 0
+
+        for j in range(int(args['max_test_episode_len'])):
+
+            if args['render_env']:
+                env.render()
+             ##OUTPUT DATA TO FILE
+            if i % 1 == 0:
+                with open('sim{:d}-test/testing-sim{:d}.txt'.format(sim_id,sim_id),'ab') as f:
+                     np.savetxt(f, [s], fmt='%d', delimiter=',')    
+
+           
+            # Added exploration noise
+            #a = actor.predict(np.reshape(s, (1, 3))) + (1. / (1. + i))
+            a = actor.predict(np.reshape(s, (1, actor.s_dim))) # +  actor_noise() #(1. / (1. + i)) * np.random.randint(1,10**3) # actor_noise()
+
+            s2, r, terminal, info = env.step(a[0])
+
+            s = s2
+            ep_reward += r
+
+            if(j == (int(args['max_episode_len'])-1) ):
+                terminal = True
+
+
+            if terminal:
+
+                summary_str = sess.run(summary_ops, feed_dict={
+                    summary_vars[0]: ep_reward,
+                    summary_vars[1]: ep_ave_max_q / (float(j+1))
+                })
+
+                writer.add_summary(summary_str, i)
+                writer.flush()
+
+                print('| Reward: {:.6f} | Episode: {:d} | Episode length: {:d} | Qmax: {:.6f}'.format(ep_reward, \
+                        i, j, (ep_ave_max_q / float(j+1))))
+
+                with open('sim{:d}-test/testing-info-sim{:d}.txt'.format(sim_id,sim_id),'ab') as f:
+                     np.savetxt(f, [np.array([i,ep_reward, ep_ave_max_q / float(j+1), j])], fmt='%.6f', delimiter=',')    
+                break
+
+
 
 def main(args):
 
+    training = int(args['train'])
+    sim_id = int(args['sim_id'])
+
+
     with tf.Session() as sess:
+        if training == 1:
 
-        env = gym.make(args['env'])
-        np.random.seed(int(args['random_seed']))
-        tf.set_random_seed(int(args['random_seed']))
-        env.seed(int(args['random_seed']))
+           
+            env = gym.make(args['env'])
+            np.random.seed(int(args['random_seed']))
+            tf.set_random_seed(int(args['random_seed']))
+            env.seed(int(args['random_seed']))
 
-        state_dim = env.observation_space.shape[0] * env.observation_space.shape[1]
-        action_shape = (env.action_space.shape[0] ,  env.action_space.shape[1])
-        action_dim = action_shape[0] * action_shape[1]
-        action_bound = env.action_space.high.reshape(env.action_space.high.shape[0] * env.action_space.high.shape[1] )
-        # Ensure action bound is symmetric
-        #assert (env.action_space.high == -env.action_space.low)
+            state_dim = env.observation_space.shape[0] * env.observation_space.shape[1]
+            action_shape = (env.action_space.shape[0] ,  env.action_space.shape[1])
+            action_dim = action_shape[0] * action_shape[1]
+            action_bound = env.action_space.high.reshape(env.action_space.high.shape[0] * env.action_space.high.shape[1] )
+            # Ensure action bound is symmetric
+            #assert (env.action_space.high == -env.action_space.low)
 
-        actor = ActorNetwork(sess, state_dim, action_dim, action_shape, action_bound,
-                             float(args['actor_lr']), float(args['tau']),
-                             int(args['minibatch_size']))
+            actor = ActorNetwork(sess, state_dim, action_dim, action_shape, action_bound,
+                                 float(args['actor_lr']), float(args['tau']),
+                                 int(args['minibatch_size']))
 
-        critic = CriticNetwork(sess, state_dim, action_dim,
-                               float(args['critic_lr']), float(args['tau']),
-                               float(args['gamma']),
-                               actor.get_num_trainable_vars())
-        
-        actor_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(action_dim))
+            critic = CriticNetwork(sess, state_dim, action_dim,
+                                   float(args['critic_lr']), float(args['tau']),
+                                   float(args['gamma']),
+                                   actor.get_num_trainable_vars())
+            
+            actor_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(action_dim))
 
-        #if args['use_gym_monitor']:
-            #if not args['render_env']:
-                #env = wrappers.Monitor(
-                   # env, args['monitor_dir'], video_callable=False, force=True)
-            #else:
-                #env = wrappers.Monitor(env, args['monitor_dir'], force=True)
+            #if args['use_gym_monitor']:
+                #if not args['render_env']:
+                    #env = wrappers.Monitor(
+                       # env, args['monitor_dir'], video_callable=False, force=True)
+                #else:
+                    #env = wrappers.Monitor(env, args['monitor_dir'], force=True)
 
-        train(sess, env, args, actor, critic, actor_noise)
+            train(sess, env, args, actor, critic, actor_noise)
+        else:
+            #tflearn.is_training(False)
+            #saver.restore(sess, "/tmp/my_model_final.ckpt")
+            env = gym.make(args['env'])
+            np.random.seed(int(args['random_seed']))
+            tf.set_random_seed(int(args['random_seed']))
+            env.seed(int(args['random_seed']))
+
+            state_dim = env.observation_space.shape[0] * env.observation_space.shape[1]
+            action_shape = (env.action_space.shape[0] ,  env.action_space.shape[1])
+            action_dim = action_shape[0] * action_shape[1]
+            action_bound = env.action_space.high.reshape(env.action_space.high.shape[0] * env.action_space.high.shape[1] )
+            # # Ensure action bound is symmetric
+            # #assert (env.action_space.high == -env.action_space.low)
+
+            actor = ActorNetwork(sess, state_dim, action_dim, action_shape, action_bound,
+                                  float(args['actor_lr']), float(args['tau']),
+                                  int(args['minibatch_size']))
+
+            critic = CriticNetwork(sess, state_dim, action_dim,
+                                    float(args['critic_lr']), float(args['tau']),
+                                    float(args['gamma']),
+                                    actor.get_num_trainable_vars())
+
+            #actor_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(action_dim))
+            #tf.reset_default_graph()
+            #env = tf.get_variable("env")
+            #actor = tf.get_variable("actor")
+            #critic = tf.get_variable("critic")
+
+            #saver = tf.train.Saver()
+
+            #print(actor)
+            saver = tf.train.import_meta_graph('sim{:d}/model_sim{:d}.ckpt.meta'.format(sim_id,sim_id))
+
+            saver.restore(sess, 'sim{:d}/model_sim{:d}.ckpt'.format(sim_id,sim_id))
+           # env = tf.get_variable("env")
+           # actor = tf.get_variable("actor")
+           # critic = tf.get_variable("critic")
+            print("before test")
+            #print(actor)
+
+
+            test(sess, env, args, actor, critic)#, actor, critic, actor_noise)
+            print("hello")
 
         #if args['use_gym_monitor']:
             #env.monitor.close()
@@ -440,23 +622,35 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
 
+    parser.add_argument('--train', help='wheter or not it is a training run (False implies testing)', default=0)
+
+
     # agent parameters
     parser.add_argument('--actor-lr', help='actor network learning rate', default=0.0001)
     parser.add_argument('--critic-lr', help='critic network learning rate', default=0.001)
-    parser.add_argument('--gamma', help='discount factor for critic updates', default=0.99)
+    parser.add_argument('--gamma', help='discount factor for critic updates', default=1.0)
     parser.add_argument('--tau', help='soft target update parameter', default=0.001)
     parser.add_argument('--buffer-size', help='max size of the replay buffer', default=1000000)
     parser.add_argument('--minibatch-size', help='size of minibatch for minibatch-SGD', default=64)
 
     # run parameters
+    parser.add_argument('--sim-id', help='simulation identifier', default=20)
+
+
     parser.add_argument('--env', help='choose the gym env- tested on {Pendulum-v0}', default='Pendulum-v0')
     parser.add_argument('--random-seed', help='random seed for repeatability', default=1234)
-    parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=100000)
+    parser.add_argument('--max-episodes', help='max num of episodes to do while training', default=1000000)
     parser.add_argument('--max-episode-len', help='max length of 1 episode', default=30)
     parser.add_argument('--render-env', help='render the gym env', action='store_true')
     parser.add_argument('--use-gym-monitor', help='record gym results', action='store_true')
     parser.add_argument('--monitor-dir', help='directory for storing gym results', default='./results/gym_ddpg')
     parser.add_argument('--summary-dir', help='directory for storing tensorboard info', default='./results/tf_ddpg')
+
+    # test parameters
+    parser.add_argument('--max-test-episodes', help='max num of episodes to do while testing', default=10)
+    parser.add_argument('--max-test-episode-len', help='max length of 1 episode during testing', default=15)
+
+
 
     parser.set_defaults(render_env=False)
     parser.set_defaults(use_gym_monitor=True)

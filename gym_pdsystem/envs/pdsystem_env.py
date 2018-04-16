@@ -2,6 +2,7 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
+import random
 from os import path
 
 #import constants as ct
@@ -140,6 +141,8 @@ class PDSystemEnv(gym.Env):
         #th, thdot = self.state # th := theta
 
         #dt = self.dt
+        #print(self.a_shape)
+       # print(u)
         u = u.reshape(self.a_shape)
         self.last_state = self.state.copy()
 
@@ -169,9 +172,11 @@ class PDSystemEnv(gym.Env):
                 
         costs = self.reward()
 
+        #self.state = self.state / self.tank_max_loads
+
         termination = False
         #Terminate if some tank is empty
-        #if len(np.nonzero(self.state)[0]) != self.n:
+         #if len(np.nonzero(self.state)[0]) != self.n:
         	#print(len(np.nonzero(self.state)[0]))
         	#termination = True
 
@@ -188,7 +193,7 @@ class PDSystemEnv(gym.Env):
                 current_load = random.random() * (b - a-1) + a+1 #np.random.randint(a+1,b)
                 self.tank_current_loads[i] = current_load * 1.0
                 
-        self.state = self.tank_current_loads   
+        self.state = self.tank_current_loads# / self.tank_max_loads 
         self.last_u = None
         return self._get_obs()
 
