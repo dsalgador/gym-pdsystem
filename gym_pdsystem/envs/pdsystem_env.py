@@ -11,7 +11,9 @@ import gym_pdsystem.utils.utilsq as ut
 import gym_pdsystem.utils.constants as ct
 import gym_pdsystem.utils.functions as fnc
 
+import matplotlib.pyplot as plt
 
+###########################################################
 # Example n=5, k = 2
 
 TANK_MAX_LOADS = np.array([100., 200, 100., 800., 200.])
@@ -26,11 +28,26 @@ LEVEL_PERCENTAGES = np.array([ #b , c, e
 TRUCK_MAX_LOADS = np.array([70.,130.])
 
 GRAPH_WEIGHTS = np.array([32., 159., 162., 156.,156., 0.])
+DISCRETE = False
 
-# Example k = 1
+############################################################
+
+
+#####################################
+# Example k = 1, n = 3
+TANK_MAX_LOADS = np.array([100., 200, 100.])
+LEVEL_PERCENTAGES = np.array([ #b , c, e
+                                                [0.02, 0.31, 0.9],
+                                                [0.01, 0.03, 0.9],
+                                                [0.05, 0.16, 0.9]
+                                                   ])
 TRUCK_MAX_LOADS = np.array([50.])
+GRAPH_WEIGHTS = np.array([32., 159., 162., 0.])
 
 DISCRETE = True
+########################################
+
+
 
 class PDSystemEnv(gym.Env):
     metadata = {
@@ -208,7 +225,7 @@ class PDSystemEnv(gym.Env):
         trucks_not_deliverying = 0
 
         for i in range(self.k):
-            print('action', u[i])
+            #print('action', u[i])
             tank_visited = u[i]
 
             if tank_visited != self.n:
@@ -302,6 +319,25 @@ class PDSystemEnv(gym.Env):
 
     def close(self):
         if self.viewer: self.viewer.close()
+
+    def visualize(self, show = False):
+            #s = self.state()
+            index = np.arange(self.n)
+            tanks_max_load = self.tank_max_loads
+            tank_loads = self.state
+            tanks_id = self.tank_ids
+            
+            #plt.bar(index, tanks_max_load, color = 'black')
+            #plt.bar(index, tank_loads, color = 'blue' )
+            #plt.xlabel('Tank id', fontsize=10)
+            #plt.ylabel('Current level', fontsize=10)
+            #plt.xticks(index, tanks_id, fontsize=10, rotation=30)
+            #plt.title('Current tanks state')
+            
+            #if show:  plt.show()
+            
+            return([index, tanks_max_load, tank_loads, tanks_id])    
+            #return plt.show()
 
 def angle_normalize(x):
     return (((x+np.pi) % (2*np.pi)) - np.pi)
