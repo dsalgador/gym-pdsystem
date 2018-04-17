@@ -28,7 +28,7 @@ TRUCK_MAX_LOADS = np.array([70.,130.])
 GRAPH_WEIGHTS = np.array([32., 159., 162., 156.,156., 0.])
 
 # Example k = 1
-TRUCK_MAX_LOADS = np.array([70.])
+TRUCK_MAX_LOADS = np.array([50.])
 
 DISCRETE = True
 
