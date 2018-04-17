@@ -35,7 +35,7 @@ TRUCK_MAX_LOADS = np.array([70.])
 class PDSystemEnv(gym.Env):
     metadata = {
         'render.modes' : ['human', 'rgb_array'],
-        'video.frames_per_second' : 30
+        'video.frames_per_second' : 1
     }
 
     def __init__(self, tank_max_loads = TANK_MAX_LOADS, 
@@ -84,7 +84,7 @@ class PDSystemEnv(gym.Env):
                 
         ######
         #self.dt=.05
-        #self.viewer = None
+        self.viewer = None
         
         ### Actions
         self.a_shape = (self.k,self.n+1) # we have removed +1
@@ -170,13 +170,13 @@ class PDSystemEnv(gym.Env):
                 
         costs = self.reward(trucks_not_deliverying)
 
-        termination = False
+        #termination = False
         #Terminate if some tank is empty
          #if len(np.nonzero(self.state)[0]) != self.n:
         	#print(len(np.nonzero(self.state)[0]))
         	#termination = True
 
-        return self._get_obs(), costs, termination, {} # WITH THE MINUS?
+        return self._get_obs(), costs, False, {} # WITH THE MINUS?
 
 
 
@@ -240,7 +240,29 @@ class PDSystemEnv(gym.Env):
         return self.state
 
     def render(self, mode='human'):
-    	pass
+        if self.viewer is None:
+            from gym.envs.classic_control import rendering
+            self.viewer = rendering.Viewer(500,500)
+            self.viewer.set_bounds(-2.2,2.2,-2.2,2.2)
+            rod = rendering.make_capsule(1, .2)
+            rod.set_color(.8, .3, .3)
+            self.pole_transform = rendering.Transform()
+            rod.add_attr(self.pole_transform)
+            self.viewer.add_geom(rod)
+            axle = rendering.make_circle(.05)
+            axle.set_color(0,0,0)
+            self.viewer.add_geom(axle)
+            #fname = path.join(path.dirname(__file__), "assets/clockwise.png")
+            #self.img = rendering.Image(fname, 1., 1.)
+           # self.imgtrans = rendering.Transform()
+            #self.img.add_attr(self.imgtrans)
+
+        #self.viewer.add_onetime(self.img)
+        self.pole_transform.set_rotation(self.state[0] + np.pi/2)
+        #if self.last_u:
+         #   self.imgtrans.scale = (-self.last_u/2, np.abs(self.last_u)/2)
+
+        return self.viewer.render(return_rgb_array = mode=='rgb_array')
 
         # if self.viewer is None:
         #     import numpy as np

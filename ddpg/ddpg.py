@@ -540,6 +540,8 @@ def main(args):
 
            
             env = gym.make(args['env'])
+            env._max_episode_steps = int(args['max_episode_len'])
+
             np.random.seed(int(args['random_seed']))
             tf.set_random_seed(int(args['random_seed']))
             env.seed(int(args['random_seed']))
@@ -562,18 +564,21 @@ def main(args):
             
             actor_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(action_dim))
 
-            #if args['use_gym_monitor']:
-                #if not args['render_env']:
-                    #env = wrappers.Monitor(
-                       # env, args['monitor_dir'], video_callable=False, force=True)
-                #else:
-                    #env = wrappers.Monitor(env, args['monitor_dir'], force=True)
+            if args['use_gym_monitor']:
+                if not args['render_env']:
+                    env = wrappers.Monitor(
+                        env, args['monitor_dir'], video_callable=False, force=True)
+                else:
+                    env = wrappers.Monitor(env, args['monitor_dir'], force=True)
 
             train(sess, env, args, actor, critic, actor_noise)
+
         else:
             #tflearn.is_training(False)
             #saver.restore(sess, "/tmp/my_model_final.ckpt")
             env = gym.make(args['env'])
+            env._max_episode_steps = int(args['max_test_episode_len'])
+
             np.random.seed(int(args['random_seed']))
             tf.set_random_seed(int(args['random_seed']))
             env.seed(int(args['random_seed']))
@@ -616,8 +621,8 @@ def main(args):
             test(sess, env, args, actor, critic)#, actor, critic, actor_noise)
             print("hello")
 
-        #if args['use_gym_monitor']:
-            #env.monitor.close()
+        if args['use_gym_monitor']:
+            env.monitor.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
