@@ -104,6 +104,8 @@ class PDSystemEnv(gym.Env):
       
         self.seed()
 
+        self.state = None
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -240,27 +242,54 @@ class PDSystemEnv(gym.Env):
         return self.state
 
     def render(self, mode='human'):
+        screen_width = 600
+        screen_height = 400
+
+        bl_y = -screen_height/2.0 + 50
+        br_y = bl_y
+        bl_x = -screen_width/2.0
+        br_x = screen_width/2.0
+
+        tankwidth = 30.0
+        tankheight = screen_height
+
+        tanky = 40# TOP OF CART
+        tankx = 50
+
         if self.viewer is None:
             from gym.envs.classic_control import rendering
-            self.viewer = rendering.Viewer(500,500)
-            self.viewer.set_bounds(-2.2,2.2,-2.2,2.2)
-            rod = rendering.make_capsule(1, .2)
-            rod.set_color(.8, .3, .3)
-            self.pole_transform = rendering.Transform()
-            rod.add_attr(self.pole_transform)
-            self.viewer.add_geom(rod)
-            axle = rendering.make_circle(.05)
-            axle.set_color(0,0,0)
-            self.viewer.add_geom(axle)
-            #fname = path.join(path.dirname(__file__), "assets/clockwise.png")
-            #self.img = rendering.Image(fname, 1., 1.)
-           # self.imgtrans = rendering.Transform()
-            #self.img.add_attr(self.imgtrans)
+            self.viewer = rendering.Viewer(screen_width, screen_height)
+            #.viewer.set_bounds(-2.2,2.2,-2.2,2.2)
+            l,r,t,b = -tankwidth/2, tankwidth/2, tankheight/2, -tankheight/2
 
-        #self.viewer.add_onetime(self.img)
-        self.pole_transform.set_rotation(self.state[0] + np.pi/2)
-        #if self.last_u:
-         #   self.imgtrans.scale = (-self.last_u/2, np.abs(self.last_u)/2)
+            #tank = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
+            tank = rendering.FilledPolygon([(0,0), (0,tankheight), (tankwidth,tankheight), (tankwidth,0)])
+
+            self.tanktrans = rendering.Transform()
+            tank.add_attr(self.tanktrans)
+            tank.set_color(.5,.5,.8)
+            self.viewer.add_geom(tank)
+
+
+            #self.track = rendering.Line( (0,100), (screen_width, 100 ))
+            self.track = rendering.Line( (0,100), (screen_width, 100 ))
+
+            self.track.set_color(0,0,0)
+            self.viewer.add_geom(self.track)
+
+
+        if self.state is None: return None    
+        
+        y = self.state[0]
+        #self.tanktrans.set_scale(tankx, x)
+        #self.tanktrans.set_scale(tankx, 13)
+        #self.tanktrans.set_translation(tankx, tanky)
+        #self.tanktrans.set_translation(0, 0)
+        self.tanktrans.set_scale(1,y/100)
+
+
+    
+          
 
         return self.viewer.render(return_rgb_array = mode=='rgb_array')
 
