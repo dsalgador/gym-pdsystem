@@ -30,7 +30,7 @@ GRAPH_WEIGHTS = np.array([32., 159., 162., 156.,156., 0.])
 # Example k = 1
 TRUCK_MAX_LOADS = np.array([70.])
 
-
+DISCRETE = True
 
 class PDSystemEnv(gym.Env):
     metadata = {
@@ -141,44 +141,53 @@ class PDSystemEnv(gym.Env):
         return R_total
 
     def step(self,u):
-        """
-        u == ((l_11, l_12,...,l_1n, l_1n+1), (l_21, l_22, ..., l_2n, l_2n+1)) (if k = 2 trucks)
-        """
-    
-        u = u.reshape(self.a_shape)
-        self.last_state = self.state.copy()
 
-        u = np.clip(u, self.a_low, self.a_high_clip.reshape(self.a_shape)) #[0]
-        self.last_u = u.reshape(u.shape[0] * u.shape[1],) # for rendering
+        if not DISCRETE:
+            """
+            u == ((l_11, l_12,...,l_1n, l_1n+1), (l_21, l_22, ..., l_2n, l_2n+1)) (if k = 2 trucks)
+            """
         
-        # Go to next state
-        visited_ids = np.argmax(u , axis = 1)
+            u = u.reshape(self.a_shape)
+            self.last_state = self.state.copy()
 
-        trucks_not_deliverying = 0
+            u = np.clip(u, self.a_low, self.a_high_clip.reshape(self.a_shape)) #[0]
+            self.last_u = u.reshape(u.shape[0] * u.shape[1],) # for rendering
+            
+            # Go to next state
+            visited_ids = np.argmax(u , axis = 1)
 
-        for i in range(self.k):
-            tank_visited = visited_ids[i]
+            trucks_not_deliverying = 0
 
-            if tank_visited != self.n:
-            	#self.state[tank_visited] = np.minimum(self.state[tank_visited] + u[i][tank_visited], self.tank_max_loads[tank_visited])
-            	hypothetical_next_tank_state = self.state[tank_visited] + self.truck_max_loads[i]
-            	if hypothetical_next_tank_state <= self.tank_max_loads[tank_visited]:
-            			self.state[tank_visited] = hypothetical_next_tank_state
-            	else:	
-                		trucks_not_deliverying = trucks_not_deliverying + 1
- 
-        # Tanks lower its load due to consumption rates
-        self.state = np.maximum(0, self.state - self.tank_consumption_rates)
-                
-        costs = self.reward(trucks_not_deliverying)
+            for i in range(self.k):
+                tank_visited = visited_ids[i]
 
-        #termination = False
-        #Terminate if some tank is empty
-         #if len(np.nonzero(self.state)[0]) != self.n:
-        	#print(len(np.nonzero(self.state)[0]))
-        	#termination = True
+                if tank_visited != self.n:
+                	#self.state[tank_visited] = np.minimum(self.state[tank_visited] + u[i][tank_visited], self.tank_max_loads[tank_visited])
+                	hypothetical_next_tank_state = self.state[tank_visited] + self.truck_max_loads[i]
+                	if hypothetical_next_tank_state <= self.tank_max_loads[tank_visited]:
+                			self.state[tank_visited] = hypothetical_next_tank_state
+                	else:	
+                    		trucks_not_deliverying = trucks_not_deliverying + 1
+     
+            # Tanks lower its load due to consumption rates
+            self.state = np.maximum(0, self.state - self.tank_consumption_rates)
+                    
+            costs = self.reward(trucks_not_deliverying)
 
-        return self._get_obs(), costs, False, {} # WITH THE MINUS?
+            #termination = False
+            #Terminate if some tank is empty
+             #if len(np.nonzero(self.state)[0]) != self.n:
+            	#print(len(np.nonzero(self.state)[0]))
+            	#termination = True
+            return self._get_obs(), costs, False, {} # WITH THE MINUS?
+
+        else:
+                return self.step_discrete(u)
+
+
+
+
+        
 
 
 
@@ -199,6 +208,7 @@ class PDSystemEnv(gym.Env):
         trucks_not_deliverying = 0
 
         for i in range(self.k):
+            print('action', u[i])
             tank_visited = u[i]
 
             if tank_visited != self.n:
@@ -230,7 +240,7 @@ class PDSystemEnv(gym.Env):
                 a = tank_levels[0]
                 b = tank_levels[-1]
                 #current_load = 0.75 * (a+b)/2.0# np.random.randint(a+1,b, size =(1,)) GIVES A STRANGE ERROR
-                current_load = random.random() * (b - a-1) + a+1 #np.random.randint(a+1,b)
+                current_load = np.random.random() * (b - a-1) + a+1 #np.random.randint(a+1,b)
                 self.tank_current_loads[i] = current_load * 1.0
                 
         self.state = self.tank_current_loads# / self.tank_max_loads 
