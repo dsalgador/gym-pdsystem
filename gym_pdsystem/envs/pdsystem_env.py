@@ -13,39 +13,45 @@ import gym_pdsystem.utils.functions as fnc
 
 import matplotlib.pyplot as plt
 
-###########################################################
-# Example n=5, k = 2
-
-TANK_MAX_LOADS = np.array([100., 200, 100., 800., 200.])
-LEVEL_PERCENTAGES = np.array([ #b , c, e
-                                                [0.02, 0.31, 0.9],
-                                                [0.01, 0.03, 0.9],
-                                                [0.05, 0.16, 0.9],
-                                                [0.07, 0.14, 0.85],
-                                                [0.08, 0.26, 0.9]
-                                                   ])
-
-TRUCK_MAX_LOADS = np.array([70.,130.])
-
-GRAPH_WEIGHTS = np.array([32., 159., 162., 156.,156., 0.])
-DISCRETE = False
-
-############################################################
+CASE = 1
 
 
-#####################################
-# Example k = 1, n = 3
-TANK_MAX_LOADS = np.array([100., 200, 100.])
-LEVEL_PERCENTAGES = np.array([ #b , c, e
-                                                [0.02, 0.31, 0.9],
-                                                [0.01, 0.03, 0.9],
-                                                [0.05, 0.16, 0.9]
-                                                   ])
-TRUCK_MAX_LOADS = np.array([50.])
-GRAPH_WEIGHTS = np.array([32., 159., 162., 0.])
+if CASE  == 1:
+	###########################################################
+	# Example n=5, k = 2
 
-DISCRETE = True
-########################################
+	TANK_MAX_LOADS = np.array([100., 200, 100., 800., 200.])
+	LEVEL_PERCENTAGES = np.array([ #b , c, e
+	                                                [0.02, 0.31, 0.9],
+	                                                [0.01, 0.03, 0.9],
+	                                                [0.05, 0.16, 0.9],
+	                                                [0.07, 0.14, 0.85],
+	                                                [0.08, 0.26, 0.9]
+	                                                   ])
+
+	TRUCK_MAX_LOADS = np.array([70.,130.])
+
+	GRAPH_WEIGHTS = np.array([32., 159., 162., 156.,156., 0.])
+	#DISCRETE = False
+	DISCRETE = True
+
+	############################################################
+
+else:
+
+	#####################################
+	# Example k = 1, n = 3
+	TANK_MAX_LOADS = np.array([100., 200, 100.])
+	LEVEL_PERCENTAGES = np.array([ #b , c, e
+	                                                [0.02, 0.31, 0.9],
+	                                                [0.01, 0.03, 0.9],
+	                                                [0.05, 0.16, 0.9]
+	                                                   ])
+	TRUCK_MAX_LOADS = np.array([50.])
+	GRAPH_WEIGHTS = np.array([32., 159., 162., 0.])
+
+	DISCRETE = True
+	########################################
 
 
 
@@ -108,7 +114,7 @@ class PDSystemEnv(gym.Env):
         self.a_high =np.full(self.a_shape, 1) * self.truck_max_loads.reshape(self.k,1) #.reshape(self.a_shape)
         self.a_low = np.full( self.a_shape , 0)
 
-        self.action_space = spaces.Box(low=self.a_low, high=self.a_high) #, shape= self.a_shape)
+        self.action_space = spaces.Box(low=self.a_low, high=self.a_high, dtype = np.float32) #, shape= self.a_shape)
         
         self.a_high_clip = np.full(self.a_shape, 1) * self.truck_max_loads.reshape(self.k,1)
         
@@ -117,7 +123,7 @@ class PDSystemEnv(gym.Env):
         self.s_high = self.tank_max_loads.copy().reshape(self.s_shape)
         self.s_low = np.full( self.s_shape , 0)
 
-        self.observation_space = spaces.Box(low=self.s_low, high=self.s_high) #, shape = self.s_shape)
+        self.observation_space = spaces.Box(low=self.s_low, high=self.s_high, dtype = np.float32 ) #, shape = self.s_shape)
       
         self.seed()
 
