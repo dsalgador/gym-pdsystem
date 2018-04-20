@@ -249,7 +249,7 @@ class PDSystemEnv(gym.Env):
 
         termination = False
         #Terminate if some tank is empty
-         #if len(np.nonzero(self.state)[0]) != self.n:
+        #if len(np.nonzero(self.state)[0]) != self.n:
         	#print(len(np.nonzero(self.state)[0]))
         	#termination = True
 
