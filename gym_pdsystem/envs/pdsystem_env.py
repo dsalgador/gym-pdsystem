@@ -39,7 +39,7 @@ if CASE  == 1:
 elif CASE == 2:
 
 	###########################################################
-	# Example n=9, k = 2
+	# Example n=9, k = 3
 
 	TANK_MAX_LOADS = np.array([100., 200, 100., 800., 200., 500., 300., 800., 300.])
 	LEVEL_PERCENTAGES = np.array([ #b , c, e
@@ -54,7 +54,7 @@ elif CASE == 2:
 	                                                [0.07, 0.14, 0.85]
 	                                                   ])
 
-	TRUCK_MAX_LOADS = np.array([70.,130.])
+	TRUCK_MAX_LOADS = np.array([70.,130., 250.])
 
 	GRAPH_WEIGHTS = np.array([32., 159., 162., 156.,156., 32., 159., 162., 156., 0.])
 	DISCRETE = True
