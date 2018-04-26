@@ -13,7 +13,7 @@ import gym_pdsystem.utils.functions as fnc
 
 import matplotlib.pyplot as plt
 
-CASE = 5
+CASE = 2
 
 
 if CASE  == 1:
