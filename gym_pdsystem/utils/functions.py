@@ -1,9 +1,9 @@
 import numpy as np
 
-def str_line1(x,b,c):
+def str_line1(x,b,c,P1):
     m = 1
     n = -c
-    return((m*x+n)/(c-b))
+    return(P1*(m*x+n)/(c-b))
 
 def str_line2(x,c,d,M):
     m = 1
@@ -41,7 +41,7 @@ def R_lvl(x, C_max, a,b,c,d,e,f,P1,P2,M):
 
     functions = [P2,
              lambda x: exp1(x,a,b,P1,P2),
-             lambda x: str_line1(x,b,c),
+             lambda x: str_line1(x,b,c,P1),
              lambda x: str_line2(x,c,d,M),
              lambda x: str_line3(x,d,e,M),
              lambda x: exp2(x,e,f,P1,P2),
