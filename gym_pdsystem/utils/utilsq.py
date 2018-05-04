@@ -20,11 +20,11 @@ def simple_weights(n: int, w: float):
         return(W)    
 
 def save_obj(obj, name ):
-    with open('obj/'+ name + '.pkl', 'wb') as f:
+    with open(''+ name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(name ):
-    with open('obj/' + name + '.pkl', 'rb') as f:
+    with open('' + name + '.pkl', 'rb') as f:
         return pickle.load(f)
     
 def create_system_animation(visualization_steps, n_iterations, skip = 1):

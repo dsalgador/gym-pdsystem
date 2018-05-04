@@ -13,8 +13,8 @@ import gym_pdsystem.utils.functions as fnc
 
 import matplotlib.pyplot as plt
 
-CASE = 1
-
+CASE = -1
+STOCHASTIC = True
 
 if CASE  == 1:
 	###########################################################
@@ -166,10 +166,16 @@ class PDSystemEnv(gym.Env):
     def __init__(self, tank_max_loads = TANK_MAX_LOADS, 
     					level_percentages = LEVEL_PERCENTAGES,
     					truck_max_loads = TRUCK_MAX_LOADS,
-    					graph_weights = GRAPH_WEIGHTS):
+    					graph_weights = GRAPH_WEIGHTS,
+    					discrete = DISCRETE,
+    					noisy_consumption_rates = STOCHASTIC):
         """
         Default problem for n = 5 and k = 2
         """
+        self.stochastic = noisy_consumption_rates
+
+        # Discrete step function or not
+        self.discrete = discrete
         
         # Tanks' information
         self.tank_max_loads = tank_max_loads 
@@ -267,7 +273,7 @@ class PDSystemEnv(gym.Env):
 
     def step(self,u):
 
-        if not DISCRETE:
+        if not self.discrete:
             """
             u == ((l_11, l_12,...,l_1n, l_1n+1), (l_21, l_22, ..., l_2n, l_2n+1)) (if k = 2 trucks)
             """
@@ -310,12 +316,6 @@ class PDSystemEnv(gym.Env):
                 return self.step_discrete(u)
 
 
-
-
-        
-
-
-
     def step_discrete(self,u):
         """
         u == (tank_1, tank_2  ) (if k = 2 trucks) tank_i \in {0,...,n-1,n}, n means stay in the depot
@@ -345,7 +345,14 @@ class PDSystemEnv(gym.Env):
                 		trucks_not_deliverying = trucks_not_deliverying + 1
  
         # Tanks lower its load due to consumption rates
-        self.state = np.maximum(0, self.state - self.tank_consumption_rates)
+       	if self.stochastic:
+            new_rate = self.tank_consumption_rates + self.tank_consumption_rates * 0.25 * np.random.uniform(-1,1)
+            self.state = np.maximum(0, self.state - new_rate)
+
+        else:
+            self.state = np.maximum(0, self.state - self.tank_consumption_rates)
+   
+        #self.state = np.maximum(0, self.state - self.tank_consumption_rates)
                 
         costs = self.reward(trucks_not_deliverying)
 
