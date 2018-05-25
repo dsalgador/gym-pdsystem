@@ -2,7 +2,7 @@ import numpy as np
 
 COEFF = 0.0075 * 580/1000 * 11.86
 
-C_TRANSPORT = 0.0 # 0 implies no transport contribution
+C_TRANSPORT = 10**(-6) # 0 implies no transport contribution
 C_LEVELS = 10**(-6)
 
 global p0_GLOBAL
