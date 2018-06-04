@@ -106,10 +106,10 @@ class PDSystemEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
     
-    def reward(self, trucks_not_deliverying):
+    def reward(self, trucks_not_deliverying, u):
         
-        def R_transport(coeff, w, u):
-            return( coeff * np.sum(w*u) )
+        def R_transport(coeff, u):
+            return( coeff * np.sum( np.multiply(self.w[u], self.truck_max_loads) ) )
     
         def R_levels(p0 = ct.p0_GLOBAL, M = ct.M_GLOBAL, P1 = ct.P1_GLOBAL,  P2 = ct.P2_GLOBAL): #STILL TO DECIDE THE DEFAULT VALUES 
 
@@ -132,7 +132,7 @@ class PDSystemEnv(gym.Env):
 
             return(R)  
 
-        R_total = ct.C_LEVELS * ( R_levels() + trucks_not_deliverying * ct.NOT_DELIVERYING_PENALTY ) #- ct.C_TRANSPORT * R_transport(ct.COEFF, w_t, u_t)
+        R_total = ct.C_LEVELS * ( R_levels() + trucks_not_deliverying * ct.NOT_DELIVERYING_PENALTY ) - ct.C_TRANSPORT * R_transport(ct.COEFF, u)
         
         return R_total
 
@@ -168,7 +168,7 @@ class PDSystemEnv(gym.Env):
             # Tanks lower its load due to consumption rates
             self.state = np.maximum(0, self.state - self.tank_consumption_rates)
                     
-            costs = self.reward(trucks_not_deliverying)
+            costs = self.reward(trucks_not_deliverying, u)
 
             #termination = False
             #Terminate if some tank is empty
@@ -219,7 +219,7 @@ class PDSystemEnv(gym.Env):
    
         #self.state = np.maximum(0, self.state - self.tank_consumption_rates)
                 
-        costs = self.reward(trucks_not_deliverying)
+        costs = self.reward(trucks_not_deliverying, u)
 
         termination = False
         #Terminate if some tank is empty

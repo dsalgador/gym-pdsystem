@@ -2,7 +2,7 @@ import numpy as np
 
 COEFF = 0.0075 * 580/1000 * 11.86
 
-C_TRANSPORT = 10**(-6) # 0 implies no transport contribution
+C_TRANSPORT = 0 #10**(-6) # 0 implies no transport contribution
 C_LEVELS = 10**(-6)
 
 global p0_GLOBAL
@@ -19,8 +19,8 @@ M_GLOBAL = 10**1
 
 NOT_DELIVERYING_PENALTY = P2_GLOBAL #to be equivalent/same importance as having 0 stock or surpassing max capacity levels
 
-CASE = -1
-STOCHASTIC = True
+CASE = 1
+STOCHASTIC = False
 
 if CASE  == 1:
 	###########################################################
