@@ -130,11 +130,15 @@ class PDSystemEnv(gym.Env):
 
                 R = R + fnc.R_lvl(x, C_max, a,b,c,d,e,f,P1,P2,M)
 
-            return(R)  
+            return(R)
 
-        R_total = ct.C_LEVELS * ( R_levels() + trucks_not_deliverying * ct.NOT_DELIVERYING_PENALTY ) - ct.C_TRANSPORT * R_transport(ct.COEFF, u)
-        
-        return R_total
+        transport_rewards = ct.C_TRANSPORT * R_transport(ct.COEFF, u)
+        level_rewards = ct.C_LEVELS *  R_levels()
+        extra_rewards = ct.C_LEVELS * trucks_not_deliverying * ct.NOT_DELIVERYING_PENALTY
+            
+        rewards = level_rewards - transport_rewards + extra_rewards  
+            
+        return(rewards, transport_rewards, level_rewards, trucks_not_deliverying)  
 
     def step(self,u):
 
@@ -219,7 +223,7 @@ class PDSystemEnv(gym.Env):
    
         #self.state = np.maximum(0, self.state - self.tank_consumption_rates)
                 
-        costs = self.reward(trucks_not_deliverying, u)
+        costs, transport_rewards, level_rewards, trucks_not_deliverying = self.reward(trucks_not_deliverying, u)
 
         termination = False
         #Terminate if some tank is empty
@@ -227,7 +231,11 @@ class PDSystemEnv(gym.Env):
         	#print(len(np.nonzero(self.state)[0]))
         	#termination = True
 
-        return self._get_obs(), costs, termination, {} # WITH THE MINUS?    
+        return(self._get_obs(), costs, termination, 
+        {"trucks_not_deliverying": trucks_not_deliverying, 
+        "transport_rewards": transport_rewards,
+        "level_rewards": level_rewards,
+        "total_rewards": costs}) # WITH THE MINUS?    
 
     def reset(self):
        
