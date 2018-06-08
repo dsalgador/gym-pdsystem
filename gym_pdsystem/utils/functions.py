@@ -1,9 +1,10 @@
 import numpy as np
 
+
 def str_line1(x,b,c,P1):
     m = 1
     n = -c
-    return(P1*(m*x+n)/(c-b))
+    return(-P1*(m*x+n)/(c-b))
 
 def str_line2(x,c,d,M):
     m = 1
