@@ -34,7 +34,7 @@ class PDSystemEnv(gym.Env):
     					truck_max_loads = TRUCK_MAX_LOADS,
     					graph_weights = GRAPH_WEIGHTS,
     					discrete = DISCRETE,
-    					noisy_consumption_rates = STOCHASTIC,STOCHASTIC_PERCENTAGE
+    					noisy_consumption_rates = STOCHASTIC,
                         noise_percentage = STOCHASTIC_PERCENTAGE):
         """
         Default problem for n = 5 and k = 2
