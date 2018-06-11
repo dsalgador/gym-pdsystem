@@ -2,7 +2,7 @@ import numpy as np
 
 COEFF = 0.0075 * 580/1000 * 11.86
 
-C_TRANSPORT = 10**(-6) # 0 implies no transport contribution
+C_TRANSPORT = 0 # 0 implies no transport contribution
 C_LEVELS = 10**(-6)
 
 global p0_GLOBAL
@@ -60,7 +60,7 @@ elif CASE == 2:
 	                                                [0.07, 0.14, 0.85]
 	                                                   ])
 
-	TRUCK_MAX_LOADS = np.array([70.,130., 250.])
+	TRUCK_MAX_LOADS = np.array([70.,130., 210.])
 
 	GRAPH_WEIGHTS = np.array([32., 159., 162., 156.,156., 32., 159., 162., 156., 0.])
 	DISCRETE = True
@@ -87,7 +87,7 @@ elif CASE == 3:
 
 	                                                   ])
 
-	TRUCK_MAX_LOADS = np.array([70.,130.,250.])
+	TRUCK_MAX_LOADS = np.array([70.,130.,210.])
 
 	GRAPH_WEIGHTS = np.array([32., 159., 162., 156.,156., 32., 159., 162., 156.,150.,150., 0.])
 	DISCRETE = True
@@ -114,7 +114,7 @@ elif CASE == 4:
 
 	                                                   ])
 
-	TRUCK_MAX_LOADS = np.array([70.,130.,250.])
+	TRUCK_MAX_LOADS = np.array([70.,130.,210.])
 
 	GRAPH_WEIGHTS = np.array([32., 159., 162., 156.,156., 32., 159., 162., 156.,150.,150.,150., 0.])
 	DISCRETE = True
