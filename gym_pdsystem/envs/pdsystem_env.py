@@ -20,6 +20,7 @@ LEVEL_PERCENTAGES = ct.LEVEL_PERCENTAGES
 TRUCK_MAX_LOADS = ct.TRUCK_MAX_LOADS
 GRAPH_WEIGHTS = ct.GRAPH_WEIGHTS
 DISCRETE = ct.DISCRETE
+STOCHASTIC_PERCENTAGE = ct.STOCHASTIC_PERCENTAGE
 
 
 class PDSystemEnv(gym.Env):
@@ -33,11 +34,13 @@ class PDSystemEnv(gym.Env):
     					truck_max_loads = TRUCK_MAX_LOADS,
     					graph_weights = GRAPH_WEIGHTS,
     					discrete = DISCRETE,
-    					noisy_consumption_rates = STOCHASTIC):
+    					noisy_consumption_rates = STOCHASTIC,STOCHASTIC_PERCENTAGE
+                        noise_percentage = STOCHASTIC_PERCENTAGE):
         """
         Default problem for n = 5 and k = 2
         """
         self.stochastic = noisy_consumption_rates
+        self.stochastic_percentage = noise_percentage
 
         # Discrete step function or not
         self.discrete = discrete
@@ -208,7 +211,7 @@ class PDSystemEnv(gym.Env):
  
         # Tanks lower its load due to consumption rates
        	if self.stochastic:
-            new_rate = self.tank_consumption_rates + self.tank_consumption_rates * 0.10 * np.random.uniform(-1,1)
+            new_rate = self.tank_consumption_rates + self.tank_consumption_rates * self.stochastic_percentage * np.random.uniform(-1,1)
             self.state = np.maximum(0, self.state - new_rate)
 
         else:

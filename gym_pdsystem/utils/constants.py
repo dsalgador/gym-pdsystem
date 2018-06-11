@@ -21,6 +21,7 @@ NOT_DELIVERYING_PENALTY = P2_GLOBAL #to be equivalent/same importance as having 
 
 CASE = 1
 STOCHASTIC = False
+STOCHASTIC_PERCENTAGE = 0.10
 
 if CASE  == 1:
 	###########################################################
