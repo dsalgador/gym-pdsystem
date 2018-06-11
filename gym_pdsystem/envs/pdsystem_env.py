@@ -143,6 +143,8 @@ class PDSystemEnv(gym.Env):
     def step(self,u):
 
         if not self.discrete:
+            #Not used for the work done so far.
+
             """
             u == ((l_11, l_12,...,l_1n, l_1n+1), (l_21, l_22, ..., l_2n, l_2n+1)) (if k = 2 trucks)
             """
@@ -190,23 +192,14 @@ class PDSystemEnv(gym.Env):
         u == (tank_1, tank_2  ) (if k = 2 trucks) tank_i \in {0,...,n-1,n}, n means stay in the depot
         """
     
-        #u = u.reshape(self.a_shape)
         self.last_state = self.state.copy()
-
-        #u = np.clip(u, self.a_low, self.a_high_clip.reshape(self.a_shape)) #[0]
-        #self.last_u = u.reshape(u.shape[0] * u.shape[1],) # for rendering
-        
-        # Go to next state
-        #visited_ids = np.argmax(u , axis = 1)
 
         trucks_not_deliverying = 0
 
         for i in range(self.k):
-            #print('action', u[i])
             tank_visited = u[i]
 
             if tank_visited != self.n:
-            	#self.state[tank_visited] = np.minimum(self.state[tank_visited] + u[i][tank_visited], self.tank_max_loads[tank_visited])
             	hypothetical_next_tank_state = self.state[tank_visited] + self.truck_max_loads[i]
             	if hypothetical_next_tank_state <= self.tank_max_loads[tank_visited]:
             			self.state[tank_visited] = hypothetical_next_tank_state
@@ -215,14 +208,12 @@ class PDSystemEnv(gym.Env):
  
         # Tanks lower its load due to consumption rates
        	if self.stochastic:
-            new_rate = self.tank_consumption_rates + self.tank_consumption_rates * 0.25 * np.random.uniform(-1,1)
+            new_rate = self.tank_consumption_rates + self.tank_consumption_rates * 0.10 * np.random.uniform(-1,1)
             self.state = np.maximum(0, self.state - new_rate)
 
         else:
             self.state = np.maximum(0, self.state - self.tank_consumption_rates)
-   
-        #self.state = np.maximum(0, self.state - self.tank_consumption_rates)
-                
+                   
         costs, transport_rewards, level_rewards, trucks_not_deliverying = self.reward(trucks_not_deliverying, u)
 
         termination = False
@@ -239,12 +230,9 @@ class PDSystemEnv(gym.Env):
 
     def reset(self):
        
-        #self.truck_current_positions =  np.array([self.n] * k)
-
         for i, tank_levels in enumerate(self.tank_levels):
                 a = tank_levels[0]
                 b = tank_levels[-1]
-                #current_load = 0.75 * (a+b)/2.0# np.random.randint(a+1,b, size =(1,)) GIVES A STRANGE ERROR
                 current_load = np.random.random() * (b - a-1) + a+1 #np.random.randint(a+1,b)
                 self.tank_current_loads[i] = current_load * 1.0
                 
@@ -257,6 +245,9 @@ class PDSystemEnv(gym.Env):
         return self.state
 
     def render(self, mode='human'):
+        """
+        To be continued ...
+        """
         screen_width = 600
         screen_height = 400
 
